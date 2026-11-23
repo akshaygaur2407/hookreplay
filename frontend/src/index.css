@@ -1,13 +1,64 @@
-
 @import "tailwindcss";
 
-* {
-  box-sizing: border-box;
+@theme {
+  --font-sans: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-bg: #0b101d;
+  --color-panel: #0f1627;
+  --color-raised: #161f35;
+  --color-line: #243049;
+  --color-fg: #e8ecf5;
+  --color-muted: #8892aa;
+  --color-signal: #7b6cff;
+  --color-signal-hover: #8f82ff;
+  --color-live: #3ddc97;
+  --color-warn: #f5b84b;
+  --color-bad: #ff6b6b;
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  font-family: Inter, system-ui, sans-serif;
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    min-width: 320px;
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-signal-hover);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--color-signal) 45%, transparent);
+  }
+}
+
+/* The one scripted moment: on the login page, the highlighted capture
+   gets replayed and its result appears. */
+@keyframes replay-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes result-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.anim-replay-spin {
+  animation: replay-spin 900ms 700ms cubic-bezier(0.5, 0, 0.2, 1) both;
+}
+.anim-result-in {
+  animation: result-in 400ms 1500ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .anim-replay-spin,
+  .anim-result-in {
+    animation: none;
+  }
 }
