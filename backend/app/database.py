@@ -1,26 +1,21 @@
+import os
+from pathlib import Path
 
-from sqlalchemy.ext.asyncio import (
-    create_async_engine,
-    async_sessionmaker,
-    AsyncSession,
-)
+from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-DATABASE_URL = (
-    "sqlite+aiosqlite:///file:hookreplay"
-    "?mode=memory&cache=shared&uri=true"
+load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent  # backend/
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"sqlite+aiosqlite:///{BASE_DIR / 'hookreplay.db'}",
 )
 
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=True,
-)
-
-AsyncSessionLocal = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
+SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
 class Base(DeclarativeBase):
@@ -28,10 +23,5 @@ class Base(DeclarativeBase):
 
 
 async def get_db():
-    async with AsyncSessionLocal() as session:
+    async with SessionLocal() as session:
         yield session
-
-
-async def init_db():
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)

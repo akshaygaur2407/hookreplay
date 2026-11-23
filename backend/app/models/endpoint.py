@@ -1,0 +1,25 @@
+from datetime import datetime, timedelta
+
+from sqlalchemy import DateTime, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.database import Base
+
+
+def utcnow() -> datetime:
+    return datetime.utcnow()
+
+
+def default_expiry() -> datetime:
+    return utcnow() + timedelta(hours=24)
+
+
+class Endpoint(Base):
+    __tablename__ = "endpoints"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    slug: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, default=default_expiry)
+
+    events = relationship("Event", back_populates="endpoint", cascade="all, delete-orphan")

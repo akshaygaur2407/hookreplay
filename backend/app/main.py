@@ -1,38 +1,28 @@
-
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from strawberry.fastapi import GraphQLRouter
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import init_db
-from app.graphql.schema import schema
+
+from app.database import Base, engine
+from app import models
+from app.routers import capture, endpoints
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)  # swap for Alembic later
     yield
 
 
-app = FastAPI(
-    title="HookReplay API",
-    description="Webhook debugging and observability platform",
-    version="0.1.0",
-    lifespan=lifespan,
-)
+app = FastAPI(title="HookReplay", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-graphql_app = GraphQLRouter(schema)
-
-app.include_router(graphql_app, prefix="/graphql")
-
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy"}
+app.include_router(endpoints.router)
+app.include_router(capture.router)

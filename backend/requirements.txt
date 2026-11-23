@@ -1,7 +1,7 @@
-
 fastapi
 uvicorn[standard]
-strawberry-graphql[fastapi]
-sqlalchemy
-aiosqlite
+sqlalchemy[asyncio]>=2.0
+aiomysql
 python-dotenv
+aiosqlite
+httpx
