@@ -33,6 +33,14 @@ export const createEndpoint = () => api<Endpoint>("/api/endpoints", { method: "P
 export const listEvents = (slug: string) =>
   api<HookEvent[]>(`/api/endpoints/${slug}/events`);
 
+export const listEndpoints = () =>
+  api<Endpoint[]>("/api/endpoints");
+
+export const deleteEndpoint = (slug: string) =>
+  api<{ deleted: boolean }>(`/api/endpoints/${slug}`, {
+    method: "DELETE",
+  });
+
 export const replayEvent = (slug: string, id: number, target_url: string) =>
   api<ReplayResult>(`/api/endpoints/${slug}/events/${id}/replay`, {
     method: "POST",

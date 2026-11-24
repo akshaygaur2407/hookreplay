@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
@@ -16,9 +16,12 @@ import { EventList } from "../components/EventList";
 import { Logo } from "../components/Logo";
 import { useEvents } from "../hooks/useEvents";
 import { useNow } from "../hooks/useNow";
-import { API, createEndpoint } from "../lib/api";
 import { expiry } from "../lib/format";
-import { loadEndpoints, saveEndpoints } from "../lib/storage";
+import {
+  createEndpoint,
+  deleteEndpoint,
+  listEndpoints,
+} from "../lib/api";
 import type { Endpoint, ReplayResult } from "../lib/types";
 import { useAuth } from "../hooks/useAuth";
 /* ---------- empty states ---------- */
@@ -211,30 +214,43 @@ export default function Workspace() {
   const navigate = useNavigate();
   const now = useNow(30000);
   const { user, logout } = useAuth();
-  const [endpoints, setEndpoints] = useState<Endpoint[]>(loadEndpoints);
+  const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
+  const [ready, setReady] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  useEffect(() => saveEndpoints(endpoints), [endpoints]);
+  // The list belongs to the signed-in user and lives on the server
+  useEffect(() => {
+    let cancelled = false;
+
+    listEndpoints()
+      .then((list) => !cancelled && setEndpoints(list))
+      .catch((e) => !cancelled && setCreateError((e as Error).message))
+      .finally(() => !cancelled && setReady(true));
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // /app -> newest saved endpoint
+  // /app -> newest endpoint; a slug that isn't yours -> newest endpoint too
   useEffect(() => {
-    if (!slug && endpoints.length > 0) {
+    if (!ready) return;
+
+    const known = slug
+      ? endpoints.some((e) => e.slug === slug)
+      : false;
+
+    if (!known && endpoints.length > 0) {
       navigate(`/app/${endpoints[0].slug}`, { replace: true });
+    } else if (!known && slug) {
+      navigate("/app", { replace: true });
     }
-  }, [slug, endpoints, navigate]);
+  }, [ready, slug, endpoints, navigate]);
 
   // A slug we don't have saved (shared link, cleared storage) still works.
-  const active = useMemo<Endpoint | null>(() => {
-    if (!slug) return null;
-    return (
-      endpoints.find((e) => e.slug === slug) ?? {
-        slug,
-        url: `${API}/h/${slug}`,
-        expires_at: null,
-      }
-    );
-  }, [slug, endpoints]);
+  const active = endpoints.find((e) => e.slug === slug) ?? null;
 
   async function create() {
     setCreating(true);
@@ -250,10 +266,24 @@ export default function Workspace() {
     }
   }
 
-  function remove(target: string) {
+  async function remove(target: string) {
+    setCreateError(null);
+
+    try {
+      await deleteEndpoint(target);
+    } catch (e) {
+      setCreateError((e as Error).message);
+      return;
+    }
+
     const rest = endpoints.filter((e) => e.slug !== target);
+
     setEndpoints(rest);
-    navigate(rest[0] ? `/app/${rest[0].slug}` : "/app", { replace: true });
+
+    navigate(
+      rest[0] ? `/app/${rest[0].slug}` : "/app",
+      { replace: true },
+    );
   }
 
   return (
@@ -367,7 +397,12 @@ export default function Workspace() {
           </button>
         </div>
         <main className="min-h-0 flex-1">
-          {active ? (
+
+          {!ready ? (
+            <div className="grid h-full place-items-center text-muted">
+              <Loader2 className="animate-spin" />
+            </div>
+          ) : (active ? (
             <EndpointView
               key={active.slug}
               endpoint={active}
@@ -379,7 +414,7 @@ export default function Workspace() {
               creating={creating}
               error={createError}
             />
-          )}
+          ))}
         </main>
       </div>
     </div>

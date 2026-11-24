@@ -1,14 +1,33 @@
+
+import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
-import AuthPage from "./pages/AuthPage";
+import Login from "./pages/Login";
 import OnboardingPage from "./pages/OnboardingPage";
-import Dashboard from "./pages/Dashboard";
+import Workspace from "./pages/Workspace";
 
 function Gate() {
   const { user, loading } = useAuth();
-  if (loading) return <p style={{ padding: 24 }}>Loading…</p>;
-  if (!user) return <AuthPage />;
+
+  if (loading) {
+    return (
+      <div className="grid min-h-full place-items-center text-muted">
+        Loading…
+      </div>
+    );
+  }
+
+  if (!user) return <Login />;
+
   if (!user.account_type) return <OnboardingPage />;
-  return <Dashboard />;
+
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/app" replace />} />
+      <Route path="/app" element={<Workspace />} />
+      <Route path="/app/:slug" element={<Workspace />} />
+      <Route path="*" element={<Navigate to="/app" replace />} />
+    </Routes>
+  );
 }
 
 export default function App() {

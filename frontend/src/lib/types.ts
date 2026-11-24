@@ -1,23 +1,20 @@
+
 export interface HookEvent {
   id: number;
+  endpoint_slug: string;
   method: string;
   path: string;
-  query_string: string;
-  headers: [string, string][];
-  content_type: string | null;
-  source_ip: string | null;
-  received_at: string;
-  body_size: number;
+  headers: Record<string, string>;
   body_preview: string;
 }
 
-export interface Endpoint { slug: string; url: string; expires_at: string }
+export interface Endpoint {
+  slug: string;
+  url: string;
+  expires_at: string;
+}
 
 export interface ReplayResult {
   replay_id: number;
-  target_url: string;
-  status_code: number | null;
-  response_body: string | null;
-  error: string | null;
-  duration_ms: number;
+  status: number;
 }

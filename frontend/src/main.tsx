@@ -1,32 +1,15 @@
-import { Navigate, Route, Routes } from "react-router-dom";
-import { AuthProvider, useAuth } from "./hooks/useAuth";
-import Login from "./pages/Login";
-import OnboardingPage from "./pages/OnboardingPage";
-import Workspace from "./pages/Workspace";
 
-function Gate() {
-  const { user, loading } = useAuth();
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 
-  if (loading) {
-    return <div className="grid min-h-full place-items-center text-muted">Loading…</div>;
-  }
-  if (!user) return <Login />; // keeps the URL, so after login you land where you were headed
-  if (!user.account_type) return <OnboardingPage />;
+import App from "./App";
+import "./index.css";
 
-  return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/app" replace />} />
-      <Route path="/app" element={<Workspace />} />
-      <Route path="/app/:slug" element={<Workspace />} />
-      <Route path="*" element={<Navigate to="/app" replace />} />
-    </Routes>
-  );
-}
-
-export default function App() {
-  return (
-    <AuthProvider>
-      <Gate />
-    </AuthProvider>
-  );
-}
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>,
+);

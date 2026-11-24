@@ -13,6 +13,8 @@ import asyncio
 import json
 from fastapi import Request
 from fastapi.responses import StreamingResponse
+from sqlalchemy import delete, select
+from app.models import Endpoint, Event, User
 from app.services.deps import get_current_user
 from app.database import SessionLocal
 from app.services.broadcaster import broadcaster
@@ -23,21 +25,64 @@ router = APIRouter(prefix="/api")
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000")
 
 
-@router.post("/endpoints", status_code=201, dependencies=[Depends(get_current_user)])
-async def create_endpoint(db: AsyncSession = Depends(get_db)):
-    endpoint = Endpoint(slug=generate_slug())
+@router.post("/endpoints", status_code=201)
+async def create_endpoint(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    endpoint = Endpoint(
+        slug=generate_slug(),
+        user_id=user.id,
+    )
+
     db.add(endpoint)
     await db.commit()
-    return {
-        "slug": endpoint.slug,
-        "url": f"{PUBLIC_BASE_URL}/h/{endpoint.slug}",
-        "expires_at": endpoint.expires_at.isoformat() + "Z",
-    }
+
+    return serialize_endpoint(endpoint)
+
+
+@router.get("/endpoints")
+async def list_endpoints(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = (
+        await db.execute(
+            select(Endpoint)
+            .where(Endpoint.user_id == user.id)
+            .order_by(Endpoint.id.desc())
+        )
+    ).scalars().all()
+
+    return [serialize_endpoint(e) for e in rows]
+
+
+async def delete_endpoint(
+    slug: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    endpoint = await get_owned_endpoint(db, slug, user)
+
+    # Delete children explicitly: SQLite doesn't enforce ON DELETE CASCADE by default
+    event_ids = select(Event.id).where(Event.endpoint_id == endpoint.id)
+
+    await db.execute(
+        delete(Replay).where(Replay.event_id.in_(event_ids))
+    )
+    await db.execute(
+        delete(Event).where(Event.endpoint_id == endpoint.id)
+    )
+
+    await db.delete(endpoint)
+    await db.commit()
+
+    return {"deleted": True}
 
 
 @router.get("/endpoints/{slug}/events")
-async def list_events(slug: str, db: AsyncSession = Depends(get_db)):
-    endpoint = (await db.execute(select(Endpoint).where(Endpoint.slug == slug))).scalar_one_or_none()
+async def list_events(slug: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    endpoint = await get_owned_endpoint(db, slug, user)
     if endpoint is None:
         raise HTTPException(404, "Unknown endpoint")
 
@@ -62,9 +107,10 @@ async def replay_event(
     slug: str,
     event_id: int,
     payload: ReplayRequest,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    endpoint = (await db.execute(select(Endpoint).where(Endpoint.slug == slug))).scalar_one_or_none()
+    endpoint = await get_owned_endpoint(db, slug, user)
     if endpoint is None:
         raise HTTPException(404, "Unknown endpoint")
 
@@ -95,7 +141,9 @@ async def stream_events(slug: str, request: Request):
     # Open and close a session just for the check, so we don't hold a
     # DB connection for the whole lifetime of the stream
     async with SessionLocal() as db:
-        endpoint = (await db.execute(select(Endpoint).where(Endpoint.slug == slug))).scalar_one_or_none()
+        user = await get_current_user(request, db)
+        endpoint= await get_owned_endpoint(db, slug, user)
+
     if endpoint is None:
         raise HTTPException(404, "Unknown endpoint")
 
@@ -120,3 +168,33 @@ async def stream_events(slug: str, request: Request):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+def serialize_endpoint(ep: Endpoint) -> dict:
+    return {
+        "slug": ep.slug,
+        "url": f"{PUBLIC_BASE_URL}/h/{ep.slug}",
+        "expires_at": ep.expires_at.isoformat() + "Z",
+    }
+
+
+async def get_owned_endpoint(
+    db: AsyncSession, slug: str, user: User
+) -> Endpoint:
+    """Endpoint by slug, only if it belongs to user.
+
+    Someone else's endpoint returns the same 404 as a nonexistent one,
+    so slugs can't be probed for existence.
+    """
+    endpoint = (
+        await db.execute(
+            select(Endpoint).where(
+                Endpoint.slug == slug,
+                Endpoint.user_id == user.id,
+            )
+        )
+    ).scalar_one_or_none()
+
+    if endpoint is None:
+        raise HTTPException(404, "Unknown endpoint")
+
+    return endpoint
