@@ -50,11 +50,10 @@ export function EventDetail({ slug, event, results, onResult }: Props) {
             type="button"
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm transition-colors ${
-              tab === t.id
+            className={`-mb-px border-b-2 px-3 py-2 text-sm transition-colors ${tab === t.id
                 ? "border-signal text-fg"
                 : "border-transparent text-muted hover:text-fg"
-            }`}
+              }`}
           >
             {t.label}
           </button>
@@ -83,8 +82,8 @@ export function EventDetail({ slug, event, results, onResult }: Props) {
           <div className="overflow-x-auto rounded-lg border border-line bg-panel">
             <table className="w-full text-left font-mono text-xs">
               <tbody className="divide-y divide-line">
-                {event.headers.map(([name, value], i) => (
-                  <tr key={`${name}-${i}`} className="align-top">
+                {Object.entries(event.headers).map(([name, value]) => (
+                  <tr key={name} className="align-top">
                     <th className="w-1/3 px-4 py-2.5 font-medium text-muted">
                       {name}
                     </th>
