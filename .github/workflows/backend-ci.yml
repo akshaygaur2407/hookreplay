@@ -56,7 +56,12 @@ jobs:
         run: bandit -r app -ll
 
       - name: Run backend tests
-        run: pytest -v
+        run: |
+          if find tests -name "test_*.py" -type f 2>/dev/null | grep -q .; then
+            pytest -v
+          else
+            echo "No tests written yet. Skipping test execution."
+          fi
 
       - name: Audit Python dependencies
         run: pip-audit -r requirements.txt
