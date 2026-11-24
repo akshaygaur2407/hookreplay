@@ -1,5 +1,6 @@
 import asyncio
 import hmac
+import smtplib
 from datetime import timedelta
 from typing import Literal
 
@@ -73,8 +74,11 @@ async def issue_otp(db: AsyncSession, user: User) -> None:
 
     try:
         await send_otp_email(user.email, code)
-    except Exception:
-        raise HTTPException(502, "Could not send verification email")
+    except (smtplib.SMTPException, OSError):
+        raise HTTPException(
+            status_code=502,
+            detail="Could not send verification email",
+        ) from None
 
 
 @router.post("/signup")

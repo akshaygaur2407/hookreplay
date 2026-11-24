@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.broadcaster import broadcaster
-from app.services.serializers import serialize_event
+
 from app.database import get_db
 from app.models import Endpoint, Event
 from app.models.endpoint import utcnow
+from app.services.broadcaster import broadcaster
+from app.services.serializers import serialize_event
 
 router = APIRouter()
 

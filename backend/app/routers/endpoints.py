@@ -1,24 +1,21 @@
-import os
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel, HttpUrl
-from app.models import Replay
-from app.services.replayer import send_replay
-from app.services.ssrf import UnsafeTarget, validate_target
-from app.database import get_db
-from app.models import Endpoint, Event
-from app.services.slug import generate_slug
 import asyncio
 import json
-from fastapi import Request
+import os
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, HttpUrl
 from sqlalchemy import delete, select
-from app.models import Endpoint, Event, User
-from app.services.deps import get_current_user
-from app.database import SessionLocal
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import SessionLocal, get_db
+from app.models import Endpoint, Event, Replay, User
 from app.services.broadcaster import broadcaster
+from app.services.deps import get_current_user
+from app.services.replayer import send_replay
 from app.services.serializers import serialize_event
+from app.services.slug import generate_slug
+from app.services.ssrf import UnsafeTarget, validate_target
 
 router = APIRouter(prefix="/api")
 
@@ -158,7 +155,7 @@ async def stream_events(slug: str, request: Request):
                 try:
                     data = await asyncio.wait_for(queue.get(), timeout=15)
                     yield f"data: {json.dumps(data)}\n\n"
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     yield ": ping\n\n"  # keep-alive so proxies don't kill idle connections
         finally:
             broadcaster.unsubscribe(slug, queue)

@@ -8,3 +8,4 @@ httpx
 argon2-cffi
 aiosmtplib
 email-validator
+ruff
