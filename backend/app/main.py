@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
-
+from app.config import FRONTEND_ORIGINS
+from app.routers import auth, capture, endpoints
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -19,10 +20,12 @@ app = FastAPI(title="HookReplay", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=FRONTEND_ORIGINS,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(endpoints.router)
 app.include_router(capture.router)

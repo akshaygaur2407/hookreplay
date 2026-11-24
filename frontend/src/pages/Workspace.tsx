@@ -20,7 +20,7 @@ import { API, createEndpoint } from "../lib/api";
 import { expiry } from "../lib/format";
 import { loadEndpoints, saveEndpoints } from "../lib/storage";
 import type { Endpoint, ReplayResult } from "../lib/types";
-
+import { useAuth } from "../hooks/useAuth";
 /* ---------- empty states ---------- */
 
 function NoEndpoint({
@@ -210,7 +210,7 @@ export default function Workspace() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const now = useNow(30000);
-
+  const { user, logout } = useAuth();
   const [endpoints, setEndpoints] = useState<Endpoint[]>(loadEndpoints);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -298,9 +298,8 @@ export default function Workspace() {
                     <Link
                       to={`/app/${ep.slug}`}
                       aria-current={current ? "page" : undefined}
-                      className={`block rounded-lg px-3 py-2 transition-colors ${
-                        current ? "bg-raised" : "hover:bg-raised/60"
-                      }`}
+                      className={`block rounded-lg px-3 py-2 transition-colors ${current ? "bg-raised" : "hover:bg-raised/60"
+                        }`}
                     >
                       <span className="block truncate font-mono text-sm">
                         {ep.slug.slice(0, 12)}
@@ -319,18 +318,21 @@ export default function Workspace() {
         </nav>
 
         <div className="flex items-center gap-3 border-t border-line p-3">
-          <span className="grid size-8 place-items-center rounded-full bg-raised text-sm font-medium">
-            G
+          <span className="grid size-8 place-items-center rounded-full bg-raised text-sm font-medium uppercase">
+            {user?.email?.[0]}
           </span>
-          <span className="flex-1 text-sm">Guest</span>
-          <Link
-            to="/"
+          <span className="min-w-0 flex-1 truncate text-sm" title={user?.email}>
+            {user?.email}
+          </span>
+          <button
+            type="button"
+            onClick={logout}
             title="Sign out"
             aria-label="Sign out"
             className="rounded-md p-2 text-muted transition-colors hover:bg-raised hover:text-fg"
           >
             <LogOut size={16} />
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -360,11 +362,10 @@ export default function Workspace() {
           >
             <Plus size={16} />
           </button>
-          <Link to="/" aria-label="Sign out" className="p-2 text-muted">
+          <button type="button" onClick={logout} aria-label="Sign out" className="p-2 text-muted">
             <LogOut size={16} />
-          </Link>
+          </button>
         </div>
-
         <main className="min-h-0 flex-1">
           {active ? (
             <EndpointView

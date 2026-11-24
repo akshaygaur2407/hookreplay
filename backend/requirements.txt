@@ -5,3 +5,5 @@ aiomysql
 python-dotenv
 aiosqlite
 httpx
+argon2-cffi
+aiosmtplib

@@ -11,10 +11,9 @@ from app.models import Endpoint, Event
 from app.services.slug import generate_slug
 import asyncio
 import json
-
 from fastapi import Request
 from fastapi.responses import StreamingResponse
-
+from app.services.deps import get_current_user
 from app.database import SessionLocal
 from app.services.broadcaster import broadcaster
 from app.services.serializers import serialize_event
@@ -24,7 +23,7 @@ router = APIRouter(prefix="/api")
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000")
 
 
-@router.post("/endpoints", status_code=201)
+@router.post("/endpoints", status_code=201, dependencies=[Depends(get_current_user)])
 async def create_endpoint(db: AsyncSession = Depends(get_db)):
     endpoint = Endpoint(slug=generate_slug())
     db.add(endpoint)
