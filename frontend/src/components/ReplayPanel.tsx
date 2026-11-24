@@ -30,8 +30,10 @@ export function ReplayPanel({ slug, event, results, onResult }: Props) {
     saveTarget(target);
     try {
       onResult(event.id, await replayEvent(slug, event.id, target));
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Something went wrong during replay."
+      );
     } finally {
       setSending(false);
     }
