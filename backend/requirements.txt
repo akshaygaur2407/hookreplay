@@ -36,7 +36,7 @@ ruff==0.17.6
 six==1.17.0
 SQLAlchemy==2.0.58
 starlette==1.7.0
-strawberry-graphql==0.334.4
+strawberry-graphql==0.341.2
 typing-inspection==0.4.5
 typing_extensions==4.16.0
 tzdata==2026.6
