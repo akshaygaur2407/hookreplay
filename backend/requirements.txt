@@ -35,7 +35,7 @@ PyYAML==6.0.4
 ruff==0.17.6
 six==1.17.0
 SQLAlchemy==2.0.58
-starlette==1.7.0
+starlette==1.10.0
 strawberry-graphql==0.334.4
 typing-inspection==0.4.5
 typing_extensions==4.16.0
