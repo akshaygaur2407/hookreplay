@@ -14,16 +14,13 @@ import { CopyButton } from "../components/CopyButton";
 import { EventDetail } from "../components/EventDetail";
 import { EventList } from "../components/EventList";
 import { Logo } from "../components/Logo";
+import { useAuth } from "../hooks/useAuth";
 import { useEvents } from "../hooks/useEvents";
 import { useNow } from "../hooks/useNow";
+import { createEndpoint, deleteEndpoint, listEndpoints } from "../lib/api";
 import { expiry } from "../lib/format";
-import {
-  createEndpoint,
-  deleteEndpoint,
-  listEndpoints,
-} from "../lib/api";
 import type { Endpoint, ReplayResult } from "../lib/types";
-import { useAuth } from "../hooks/useAuth";
+
 /* ---------- empty states ---------- */
 
 function NoEndpoint({
@@ -151,11 +148,11 @@ function EndpointView({
             <button
               type="button"
               onClick={onRemove}
-              title="Remove from this list"
+              title="Delete endpoint and its requests"
               className="inline-flex items-center gap-1.5 text-muted transition-colors hover:text-bad"
             >
               <Trash2 size={15} />
-              Remove
+              Delete
             </button>
           </div>
         </div>
@@ -214,42 +211,42 @@ export default function Workspace() {
   const navigate = useNavigate();
   const now = useNow(30000);
   const { user, logout } = useAuth();
+
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
-  const [ready, setReady] = useState(false);
+  const [loadingList, setLoadingList] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // The list belongs to the signed-in user and lives on the server
+  // load my endpoints from the server
   useEffect(() => {
     let cancelled = false;
-
     listEndpoints()
-      .then((list) => !cancelled && setEndpoints(list))
-      .catch((e) => !cancelled && setCreateError((e as Error).message))
-      .finally(() => !cancelled && setReady(true));
-
+      .then((list) => {
+        if (!cancelled) setEndpoints(list);
+      })
+      .catch((e) => {
+        if (!cancelled) setListError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingList(false);
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // /app -> newest saved endpoint
-  // /app -> newest endpoint; a slug that isn't yours -> newest endpoint too
+  // /app, or a slug that isn't mine -> newest endpoint (or /app if none)
   useEffect(() => {
-    if (!ready) return;
-
-    const known = slug
-      ? endpoints.some((e) => e.slug === slug)
-      : false;
-
-    if (!known && endpoints.length > 0) {
+    if (loadingList) return;
+    if (slug && endpoints.some((e) => e.slug === slug)) return;
+    if (endpoints.length > 0) {
       navigate(`/app/${endpoints[0].slug}`, { replace: true });
-    } else if (!known && slug) {
+    } else if (slug) {
       navigate("/app", { replace: true });
     }
-  }, [ready, slug, endpoints, navigate]);
+  }, [loadingList, slug, endpoints, navigate]);
 
-  // A slug we don't have saved (shared link, cleared storage) still works.
   const active = endpoints.find((e) => e.slug === slug) ?? null;
 
   async function create() {
@@ -267,23 +264,17 @@ export default function Workspace() {
   }
 
   async function remove(target: string) {
+    if (!window.confirm("Delete this endpoint and all its captured requests?")) return;
     setCreateError(null);
-
     try {
       await deleteEndpoint(target);
     } catch (e) {
       setCreateError((e as Error).message);
       return;
     }
-
     const rest = endpoints.filter((e) => e.slug !== target);
-
     setEndpoints(rest);
-
-    navigate(
-      rest[0] ? `/app/${rest[0].slug}` : "/app",
-      { replace: true },
-    );
+    navigate(rest[0] ? `/app/${rest[0].slug}` : "/app", { replace: true });
   }
 
   return (
@@ -328,8 +319,9 @@ export default function Workspace() {
                     <Link
                       to={`/app/${ep.slug}`}
                       aria-current={current ? "page" : undefined}
-                      className={`block rounded-lg px-3 py-2 transition-colors ${current ? "bg-raised" : "hover:bg-raised/60"
-                        }`}
+                      className={`block rounded-lg px-3 py-2 transition-colors ${
+                        current ? "bg-raised" : "hover:bg-raised/60"
+                      }`}
                     >
                       <span className="block truncate font-mono text-sm">
                         {ep.slug.slice(0, 12)}
@@ -392,17 +384,28 @@ export default function Workspace() {
           >
             <Plus size={16} />
           </button>
-          <button type="button" onClick={logout} aria-label="Sign out" className="p-2 text-muted">
+          <button
+            type="button"
+            onClick={logout}
+            aria-label="Sign out"
+            className="p-2 text-muted"
+          >
             <LogOut size={16} />
           </button>
         </div>
-        <main className="min-h-0 flex-1">
 
-          {!ready ? (
+        <main className="min-h-0 flex-1">
+          {loadingList ? (
             <div className="grid h-full place-items-center text-muted">
               <Loader2 className="animate-spin" />
             </div>
-          ) : (active ? (
+          ) : listError ? (
+            <div className="grid h-full place-items-center px-6 text-center">
+              <p role="alert" className="text-sm text-bad">
+                {listError}
+              </p>
+            </div>
+          ) : active ? (
             <EndpointView
               key={active.slug}
               endpoint={active}
@@ -414,7 +417,7 @@ export default function Workspace() {
               creating={creating}
               error={createError}
             />
-          ))}
+          )}
         </main>
       </div>
     </div>

@@ -54,6 +54,7 @@ async def list_endpoints(
     return [serialize_endpoint(e) for e in rows]
 
 
+@router.delete("/endpoints/{slug}")
 async def delete_endpoint(
     slug: str,
     user: User = Depends(get_current_user),
@@ -155,8 +156,8 @@ async def stream_events(slug: str, request: Request):
                 try:
                     data = await asyncio.wait_for(queue.get(), timeout=15)
                     yield f"data: {json.dumps(data)}\n\n"
-                except TimeoutError:
-                    yield ": ping\n\n"  # keep-alive so proxies don't kill idle connections
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
         finally:
             broadcaster.unsubscribe(slug, queue)
 

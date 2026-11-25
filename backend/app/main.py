@@ -1,21 +1,10 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import FRONTEND_ORIGINS
-from app.database import Base, engine
 from app.routers import auth, capture, endpoints
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-
-
-app = FastAPI(title="HookReplay", lifespan=lifespan)
+app = FastAPI(title="HookReplay")
 
 app.add_middleware(
     CORSMiddleware,
