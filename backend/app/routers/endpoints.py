@@ -156,7 +156,7 @@ async def stream_events(slug: str, request: Request):
                 try:
                     data = await asyncio.wait_for(queue.get(), timeout=15)
                     yield f"data: {json.dumps(data)}\n\n"
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     yield ": ping\n\n"
         finally:
             broadcaster.unsubscribe(slug, queue)
