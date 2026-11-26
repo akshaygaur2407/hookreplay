@@ -20,6 +20,7 @@ import { useNow } from "../hooks/useNow";
 import { createEndpoint, deleteEndpoint, listEndpoints } from "../lib/api";
 import { expiry } from "../lib/format";
 import type { Endpoint, ReplayResult } from "../lib/types";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 /* ---------- empty states ---------- */
 
@@ -263,17 +264,30 @@ export default function Workspace() {
     }
   }
 
-  async function remove(target: string) {
-    if (!window.confirm("Delete this endpoint and all its captured requests?")) return;
-    setCreateError(null);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  function askDelete(target: string) {
+    setDeleteError(null);
+    setPendingDelete(target);
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    setDeleteError(null);
     try {
-      await deleteEndpoint(target);
+      await deleteEndpoint(pendingDelete);
     } catch (e) {
-      setCreateError((e as Error).message);
+      setDeleteError((e as Error).message);
+      setDeleting(false);
       return;
     }
-    const rest = endpoints.filter((e) => e.slug !== target);
+    const rest = endpoints.filter((e) => e.slug !== pendingDelete);
     setEndpoints(rest);
+    setPendingDelete(null);
+    setDeleting(false);
     navigate(rest[0] ? `/app/${rest[0].slug}` : "/app", { replace: true });
   }
 
@@ -319,9 +333,8 @@ export default function Workspace() {
                     <Link
                       to={`/app/${ep.slug}`}
                       aria-current={current ? "page" : undefined}
-                      className={`block rounded-lg px-3 py-2 transition-colors ${
-                        current ? "bg-raised" : "hover:bg-raised/60"
-                      }`}
+                      className={`block rounded-lg px-3 py-2 transition-colors ${current ? "bg-raised" : "hover:bg-raised/60"
+                        }`}
                     >
                       <span className="block truncate font-mono text-sm">
                         {ep.slug.slice(0, 12)}
@@ -409,7 +422,7 @@ export default function Workspace() {
             <EndpointView
               key={active.slug}
               endpoint={active}
-              onRemove={() => remove(active.slug)}
+              onRemove={() => askDelete(active.slug)}
             />
           ) : (
             <NoEndpoint
@@ -420,6 +433,17 @@ export default function Workspace() {
           )}
         </main>
       </div>
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete this endpoint?"
+        description="This permanently deletes the capture URL and every request captured on it. Anything still sending to this URL will start getting 404 responses."
+        detail={pendingDelete ?? undefined}
+        confirmLabel="Delete endpoint"
+        busy={deleting}
+        error={deleteError}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

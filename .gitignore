@@ -22,3 +22,4 @@ Thumbs.db
 *.log
 
 hookreplay.db
+sql_shell.py
