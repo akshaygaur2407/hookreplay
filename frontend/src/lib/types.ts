@@ -5,7 +5,7 @@ export interface HookEvent {
   method: string;
   path: string;
   query_string: string | null;
-  headers: Record<string, string>;
+  headers: [string, string][];
   body_preview: string;
   received_at: string;
   source_ip: string | null;
