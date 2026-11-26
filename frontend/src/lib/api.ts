@@ -46,3 +46,11 @@ export const replayEvent = (slug: string, id: number, target_url: string) =>
     method: "POST",
     body: JSON.stringify({ target_url }),
   });
+
+export async function getEventBody(slug: string, id: number): Promise<Uint8Array> {
+  const res = await fetch(`${API}/api/endpoints/${slug}/events/${id}/body`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new ApiError(res.status, `Could not load request body (${res.status})`);
+  return new Uint8Array(await res.arrayBuffer());
+}
