@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, HttpUrl
 from sqlalchemy import delete, select
@@ -196,3 +196,27 @@ async def get_owned_endpoint(
         raise HTTPException(404, "Unknown endpoint")
 
     return endpoint
+
+
+@router.get("/endpoints/{slug}/events/{event_id}/body")
+async def get_event_body(
+    slug: str,
+    event_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    endpoint = await get_owned_endpoint(db, slug, user)
+    event = (
+        await db.execute(
+            select(Event).where(Event.id == event_id, Event.endpoint_id == endpoint.id)
+        )
+    ).scalar_one_or_none()
+    if event is None:
+        raise HTTPException(404, "Unknown event")
+
+    # Exact bytes as captured; no decoding, no JSON handling
+    return Response(
+        content=event.body,
+        media_type="application/octet-stream",
+        headers={"Cache-Control": "no-store"},
+    )
