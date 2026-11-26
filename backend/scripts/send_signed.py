@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Send signed test webhooks to a HookReplay capture URL."""
 import argparse
 import hashlib
