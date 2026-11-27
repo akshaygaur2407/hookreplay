@@ -8,12 +8,21 @@ from app.models.endpoint import utcnow
 from app.services.broadcaster import broadcaster
 from app.services.retention import prune_events
 from app.services.serializers import serialize_event
+from app import config
+from app.services.ratelimit import client_ip, enforce
 
 router = APIRouter()
 
 MAX_BODY_BYTES = 1 * 1024 * 1024  # 1 MB cap; public URL, so limit abuse
 ALL_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]
 
+async def capture_limits(slug: str, request: Request) -> None:
+    await enforce(
+        f"cap-ip:{client_ip(request)}", config.CAPTURE_PER_IP_PER_MIN, 60, "Too many requests from your address."
+    )
+    await enforce(
+        f"cap-slug:{slug}", config.CAPTURE_PER_SLUG_PER_MIN, 60, "This endpoint is receiving too many requests."
+    )
 
 @router.api_route("/h/{slug}", methods=ALL_METHODS)
 @router.api_route("/h/{slug}/{rest:path}", methods=ALL_METHODS)
@@ -21,6 +30,7 @@ async def capture(
     slug: str,
     request: Request,
     rest: str = "",
+    _limits: None = Depends(capture_limits),
     db: AsyncSession = Depends(get_db),
 ):
     endpoint = (
@@ -55,7 +65,7 @@ async def capture(
         ],
         body=body,
         content_type=request.headers.get("content-type"),
-        source_ip=request.client.host if request.client else None,
+        source_ip=client_ip(request),
     )
     db.add(event)
     await db.commit()
