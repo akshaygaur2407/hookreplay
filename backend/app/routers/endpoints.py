@@ -16,6 +16,8 @@ from app.services.replayer import send_replay
 from app.services.serializers import serialize_event
 from app.services.slug import generate_slug
 from app.services.ssrf import UnsafeTarget, validate_target
+from app import config
+from app.services.ratelimit import enforce
 
 router = APIRouter(prefix="/api")
 
@@ -34,6 +36,9 @@ async def create_endpoint(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await enforce(
+        f"create-endpoint:{user.id}", config.CREATE_ENDPOINT_PER_HOUR, 3600, "You're creating endpoints too quickly."
+    )
     owned = (
         await db.execute(
             select(func.count())
@@ -183,6 +188,9 @@ async def replay_event(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await enforce(
+        f"replay:{user.id}", config.REPLAY_PER_USER_PER_MIN, 60, "You're replaying too quickly."
+    )
     endpoint = await get_owned_endpoint(db, slug, user)
 
     event = (

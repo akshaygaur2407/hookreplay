@@ -16,6 +16,7 @@ from app.models.endpoint import utcnow
 from app.services import security
 from app.services.deps import get_current_user
 from app.services.email import send_otp_email
+from app.services.ratelimit import enforce, limit_by_ip
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -53,6 +54,9 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
 
 
 async def issue_otp(db: AsyncSession, user: User) -> None:
+    await enforce(
+        f"otp-email:{user.email}", 5, 3600, "Too many verification codes were requested for this email."
+    )
     last = (
         await db.execute(
             select(OtpCode)
@@ -87,7 +91,7 @@ async def issue_otp(db: AsyncSession, user: User) -> None:
         ) from None
 
 
-@router.post("/signup")
+@router.post("/signup", dependencies=[Depends(limit_by_ip("signup", 10, 3600, "Too many sign-up attempts."))])
 async def signup(body: SignupIn, db: AsyncSession = Depends(get_db)):
     user = await get_user_by_email(db, body.email)
     if user and user.is_verified:
@@ -111,8 +115,11 @@ async def signup(body: SignupIn, db: AsyncSession = Depends(get_db)):
     return {"otp_required": True}
 
 
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(limit_by_ip("login", 10, 900, "Too many sign-in attempts."))])
 async def login(body: LoginIn, db: AsyncSession = Depends(get_db)):
+    await enforce(
+        f"login-email:{body.email.lower()}", 10, 900, "Too many sign-in attempts for this account."
+    )
     user = await get_user_by_email(db, body.email)
     if user is None:
         await asyncio.to_thread(security.verify_password, DUMMY_HASH, body.password)
@@ -129,7 +136,7 @@ async def login(body: LoginIn, db: AsyncSession = Depends(get_db)):
     return {"otp_required": True}
 
 
-@router.post("/verify-otp")
+@router.post("/verify-otp", dependencies=[Depends(limit_by_ip("verify", 20, 900, "Too many verification attempts."))])
 async def verify_otp(
     body: VerifyIn, response: Response, db: AsyncSession = Depends(get_db)
 ):
