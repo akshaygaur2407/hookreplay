@@ -9,7 +9,9 @@ from app.models.endpoint import utcnow
 from app.services.security import hash_token
 
 
-async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)) -> User:
+async def get_current_user(
+    request: Request, db: AsyncSession = Depends(get_db)
+) -> User:
     token = request.cookies.get(COOKIE_NAME)
     if not token:
         raise HTTPException(401, "Not authenticated")

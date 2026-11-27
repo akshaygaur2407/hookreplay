@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import Endpoint, Event
 from app.models.endpoint import utcnow
 from app.services.broadcaster import broadcaster
+from app.services.retention import prune_events
 from app.services.serializers import serialize_event
 
 router = APIRouter()
@@ -22,7 +23,9 @@ async def capture(
     rest: str = "",
     db: AsyncSession = Depends(get_db),
 ):
-    endpoint = (await db.execute(select(Endpoint).where(Endpoint.slug == slug))).scalar_one_or_none()
+    endpoint = (
+        await db.execute(select(Endpoint).where(Endpoint.slug == slug))
+    ).scalar_one_or_none()
     if endpoint is None:
         return Response("Unknown endpoint", status_code=404)
     if endpoint.expires_at < utcnow():
@@ -47,7 +50,9 @@ async def capture(
         method=request.method,
         path="/" + rest,
         query_string=request.url.query,
-        headers=[[k.decode("latin-1"), v.decode("latin-1")] for k, v in request.headers.raw],
+        headers=[
+            [k.decode("latin-1"), v.decode("latin-1")] for k, v in request.headers.raw
+        ],
         body=body,
         content_type=request.headers.get("content-type"),
         source_ip=request.client.host if request.client else None,
@@ -56,5 +61,6 @@ async def capture(
     await db.commit()
 
     broadcaster.publish(slug, serialize_event(event))
+    await prune_events(db, endpoint.id)
 
     return {"received": True, "event_id": event.id}

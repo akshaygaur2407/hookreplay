@@ -1,12 +1,12 @@
 
 export interface HookEvent {
   id: number;
-  endpoint_slug: string;
   method: string;
   path: string;
   query_string: string | null;
   headers: [string, string][];
   body_preview: string;
+  body_truncated: boolean;
   received_at: string;
   source_ip: string | null;
   body_size: number;
@@ -14,9 +14,10 @@ export interface HookEvent {
 }
 
 export interface Endpoint {
+  id: number;
   slug: string;
   url: string;
-  expires_at: string;
+  expires_at: string | null;
 }
 
 export interface ReplayResult {
@@ -26,4 +27,10 @@ export interface ReplayResult {
   target_url: string;
   error: string | null;
   response_body: string | null;
+}
+
+export interface Page<T> {
+  items: T[];
+  total: number;
+  has_more: boolean;
 }

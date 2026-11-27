@@ -20,3 +20,7 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 SMTP_FROM = os.getenv("SMTP_FROM", "HookReplay <no-reply@hookreplay.local>")
+
+CLEANUP_ENABLED = os.getenv("CLEANUP_ENABLED", "true").lower() == "true"
+CLEANUP_INTERVAL_MINUTES = int(os.getenv("CLEANUP_INTERVAL_MINUTES", "60"))
+ENDPOINT_GRACE_DAYS = int(os.getenv("ENDPOINT_GRACE_DAYS", "7"))
