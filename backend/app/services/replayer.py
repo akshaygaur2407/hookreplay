@@ -6,8 +6,16 @@ from app.models import Event
 
 # Headers that must be recomputed for the new request
 SKIP_HEADERS = {
-    "host", "content-length", "connection", "keep-alive", "transfer-encoding",
-    "upgrade", "te", "trailer", "proxy-authorization", "proxy-authenticate",
+    "host",
+    "content-length",
+    "connection",
+    "keep-alive",
+    "transfer-encoding",
+    "upgrade",
+    "te",
+    "trailer",
+    "proxy-authorization",
+    "proxy-authenticate",
 }
 
 

@@ -1,4 +1,3 @@
-
 import asyncio
 import json
 import os
@@ -20,9 +19,7 @@ from app.services.ssrf import UnsafeTarget, validate_target
 
 router = APIRouter(prefix="/api")
 
-PUBLIC_BASE_URL = os.getenv(
-    "PUBLIC_BASE_URL", "http://localhost:8000"
-).rstrip("/")
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000").rstrip("/")
 
 MAX_ENDPOINTS_PER_USER = 50
 
@@ -30,6 +27,7 @@ MAX_ENDPOINTS_PER_USER = 50
 # ---------------------------------------------------------------------------
 # Endpoint management
 # ---------------------------------------------------------------------------
+
 
 @router.post("/endpoints", status_code=201)
 async def create_endpoint(
@@ -86,10 +84,10 @@ async def list_endpoints(
         query = query.where(Endpoint.id < before)
 
     rows = (
-        await db.execute(
-            query.order_by(Endpoint.id.desc()).limit(limit + 1)
-        )
-    ).scalars().all()
+        (await db.execute(query.order_by(Endpoint.id.desc()).limit(limit + 1)))
+        .scalars()
+        .all()
+    )
 
     return {
         "items": [serialize_endpoint(endpoint) for endpoint in rows[:limit]],
@@ -132,10 +130,10 @@ async def list_events(
         query = query.where(Event.id < before)
 
     rows = (
-        await db.execute(
-            query.order_by(Event.id.desc()).limit(limit + 1)
-        )
-    ).scalars().all()
+        (await db.execute(query.order_by(Event.id.desc()).limit(limit + 1)))
+        .scalars()
+        .all()
+    )
 
     return {
         "items": [serialize_event(event) for event in rows[:limit]],

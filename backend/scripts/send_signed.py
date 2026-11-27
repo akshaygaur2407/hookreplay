@@ -1,4 +1,5 @@
 """Send signed test webhooks to a HookReplay capture URL."""
+
 import argparse
 import hashlib
 import hmac
@@ -7,7 +8,12 @@ import time
 import urllib.error
 import urllib.request
 
-PAYLOAD = {"id": "evt_test_123", "event": "payment.captured", "amount": 49900, "currency": "INR"}
+PAYLOAD = {
+    "id": "evt_test_123",
+    "event": "payment.captured",
+    "amount": 49900,
+    "currency": "INR",
+}
 
 
 def compact(obj) -> bytes:
@@ -52,7 +58,9 @@ def main() -> None:
     elif args.case == "tampered":
         sent_body = compact({**PAYLOAD, "amount": 1})  # changed after signing
     elif args.case == "reserialized":
-        sent_body = json.dumps(PAYLOAD, indent=2).encode()  # signed compact, sent pretty
+        sent_body = json.dumps(
+            PAYLOAD, indent=2
+        ).encode()  # signed compact, sent pretty
     elif args.case == "old":
         ts = now - 3600
 

@@ -26,7 +26,9 @@ def generate_otp() -> str:
 
 
 def hash_otp(user_id: int, code: str) -> str:
-    return hmac.new(AUTH_SECRET.encode(), f"{user_id}:{code}".encode(), hashlib.sha256).hexdigest()
+    return hmac.new(
+        AUTH_SECRET.encode(), f"{user_id}:{code}".encode(), hashlib.sha256
+    ).hexdigest()
 
 
 def new_session_token() -> str:

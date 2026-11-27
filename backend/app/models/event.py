@@ -21,9 +21,13 @@ class Event(Base):
     __tablename__ = "events"
 
     id: Mapped[int] = mapped_column(
-        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+        BigInteger().with_variant(Integer, "sqlite"),
+        primary_key=True,
+        autoincrement=True,
     )
-    endpoint_id: Mapped[int] = mapped_column(ForeignKey("endpoints.id", ondelete="CASCADE"), index=True)
+    endpoint_id: Mapped[int] = mapped_column(
+        ForeignKey("endpoints.id", ondelete="CASCADE"), index=True
+    )
 
     method: Mapped[str] = mapped_column(String(10))
     path: Mapped[str] = mapped_column(String(2048))
@@ -33,7 +37,9 @@ class Event(Base):
     headers: Mapped[list] = mapped_column(JSON)
 
     # raw bytes exactly as received; never parsed or re-serialized
-    body: Mapped[bytes] = mapped_column(LargeBinary().with_variant(LONGBLOB, "mysql"), default=b"")
+    body: Mapped[bytes] = mapped_column(
+        LargeBinary().with_variant(LONGBLOB, "mysql"), default=b""
+    )
 
     content_type: Mapped[str | None] = mapped_column(String(255), nullable=True)
     source_ip: Mapped[str | None] = mapped_column(String(45), nullable=True)

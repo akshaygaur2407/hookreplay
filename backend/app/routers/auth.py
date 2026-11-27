@@ -55,10 +55,16 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
 async def issue_otp(db: AsyncSession, user: User) -> None:
     last = (
         await db.execute(
-            select(OtpCode).where(OtpCode.user_id == user.id).order_by(OtpCode.id.desc()).limit(1)
+            select(OtpCode)
+            .where(OtpCode.user_id == user.id)
+            .order_by(OtpCode.id.desc())
+            .limit(1)
         )
     ).scalar_one_or_none()
-    if last and (utcnow() - last.created_at).total_seconds() < config.OTP_RESEND_SECONDS:
+    if (
+        last
+        and (utcnow() - last.created_at).total_seconds() < config.OTP_RESEND_SECONDS
+    ):
         raise HTTPException(429, "Please wait a minute before requesting another code")
 
     await db.execute(delete(OtpCode).where(OtpCode.user_id == user.id))
@@ -85,11 +91,15 @@ async def issue_otp(db: AsyncSession, user: User) -> None:
 async def signup(body: SignupIn, db: AsyncSession = Depends(get_db)):
     user = await get_user_by_email(db, body.email)
     if user and user.is_verified:
-        raise HTTPException(409, "An account with this email already exists. Please log in.")
+        raise HTTPException(
+            409, "An account with this email already exists. Please log in."
+        )
 
     password_hash = await asyncio.to_thread(security.hash_password, body.password)
     if user is None:
-        user = User(email=body.email.lower(), password_hash=password_hash, is_verified=False)
+        user = User(
+            email=body.email.lower(), password_hash=password_hash, is_verified=False
+        )
         db.add(user)
     else:
         # Unverified leftover signup: let the latest attempt win
@@ -108,7 +118,9 @@ async def login(body: LoginIn, db: AsyncSession = Depends(get_db)):
         await asyncio.to_thread(security.verify_password, DUMMY_HASH, body.password)
         raise HTTPException(401, "Invalid email or password")
 
-    ok = await asyncio.to_thread(security.verify_password, user.password_hash, body.password)
+    ok = await asyncio.to_thread(
+        security.verify_password, user.password_hash, body.password
+    )
     if not ok:
         raise HTTPException(401, "Invalid email or password")
 
@@ -118,7 +130,9 @@ async def login(body: LoginIn, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/verify-otp")
-async def verify_otp(body: VerifyIn, response: Response, db: AsyncSession = Depends(get_db)):
+async def verify_otp(
+    body: VerifyIn, response: Response, db: AsyncSession = Depends(get_db)
+):
     def bad_code() -> HTTPException:
         return HTTPException(400, "Invalid or expired code")
 
@@ -128,7 +142,10 @@ async def verify_otp(body: VerifyIn, response: Response, db: AsyncSession = Depe
 
     otp = (
         await db.execute(
-            select(OtpCode).where(OtpCode.user_id == user.id).order_by(OtpCode.id.desc()).limit(1)
+            select(OtpCode)
+            .where(OtpCode.user_id == user.id)
+            .order_by(OtpCode.id.desc())
+            .limit(1)
         )
     ).scalar_one_or_none()
     if otp is None or otp.expires_at < utcnow():
@@ -186,11 +203,15 @@ async def onboarding(
 
 
 @router.post("/logout")
-async def logout(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+async def logout(
+    request: Request, response: Response, db: AsyncSession = Depends(get_db)
+):
     token = request.cookies.get(config.COOKIE_NAME)
     if token:
         await db.execute(
-            delete(AuthSession).where(AuthSession.token_hash == security.hash_token(token))
+            delete(AuthSession).where(
+                AuthSession.token_hash == security.hash_token(token)
+            )
         )
         await db.commit()
     response.delete_cookie(config.COOKIE_NAME, path="/")

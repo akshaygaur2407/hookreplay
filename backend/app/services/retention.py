@@ -23,5 +23,7 @@ async def prune_events(db: AsyncSession, endpoint_id: int) -> None:
     old = select(Event.id).where(Event.endpoint_id == endpoint_id, Event.id <= cutoff)
     # explicit: SQLite doesn't enforce ON DELETE CASCADE by default
     await db.execute(delete(Replay).where(Replay.event_id.in_(old)))
-    await db.execute(delete(Event).where(Event.endpoint_id == endpoint_id, Event.id <= cutoff))
+    await db.execute(
+        delete(Event).where(Event.endpoint_id == endpoint_id, Event.id <= cutoff)
+    )
     await db.commit()

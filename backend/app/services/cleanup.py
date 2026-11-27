@@ -43,10 +43,14 @@ async def purge_expired_endpoints(db: AsyncSession, dry_run: bool) -> dict:
     endpoints = events = 0
     while True:
         ids = (
-            await db.execute(
-                select(Endpoint.id).where(Endpoint.expires_at < cutoff).limit(BATCH)
+            (
+                await db.execute(
+                    select(Endpoint.id).where(Endpoint.expires_at < cutoff).limit(BATCH)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         if not ids:
             break
 
