@@ -94,11 +94,10 @@ export function EventDetail({ slug, event, results, onResult }: Props) {
             type="button"
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
-            className={`-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition-colors ${
-              tab === t.id
+            className={`-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition-colors ${tab === t.id
                 ? "border-signal text-fg"
                 : "border-transparent text-muted hover:text-fg"
-            }`}
+              }`}
           >
             {t.label}
             {t.dot && (
@@ -117,6 +116,12 @@ export function EventDetail({ slug, event, results, onResult }: Props) {
             <p className="text-sm text-muted">This request had no body.</p>
           ) : (
             <div>
+              {event.body_truncated && (
+                <p className="mb-2 rounded-md border border-warn/30 bg-warn/10 px-3 py-2 text-xs text-warn">
+                  Showing the first 64 KB of {formatBytes(event.body_size)}. Signature checks and
+                  replays always use the full body.
+                </p>
+              )}
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-xs text-muted">
                   {body.isJson ? "JSON, formatted" : "Raw text"}

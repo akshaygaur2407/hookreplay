@@ -1,4 +1,4 @@
-import type { Endpoint, HookEvent, ReplayResult } from "./types";
+import type { Endpoint, HookEvent, ReplayResult, Page } from "./types";
 
 export const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -30,11 +30,15 @@ export async function api<T = any>(path: string, options: RequestInit = {}): Pro
 
 export const createEndpoint = () => api<Endpoint>("/api/endpoints", { method: "POST" });
 
-export const listEvents = (slug: string) =>
-  api<HookEvent[]>(`/api/endpoints/${slug}/events`);
+export const listEvents = (slug: string, before?: number) =>
+  api<Page<HookEvent>>(
+    `/api/endpoints/${slug}/events?limit=50${before ? `&before=${before}` : ""}`,
+  );
 
-export const listEndpoints = () =>
-  api<Endpoint[]>("/api/endpoints");
+export const getEndpoint = (slug: string) => api<Endpoint>(`/api/endpoints/${slug}`);
+
+export const listEndpoints = (before?: number) =>
+  api<Page<Endpoint>>(`/api/endpoints?limit=50${before ? `&before=${before}` : ""}`);
 
 export const deleteEndpoint = (slug: string) =>
   api<{ deleted: boolean }>(`/api/endpoints/${slug}`, {

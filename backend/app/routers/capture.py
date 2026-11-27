@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.services.retention import prune_events
 from app.database import get_db
 from app.models import Endpoint, Event
 from app.models.endpoint import utcnow
@@ -56,5 +56,6 @@ async def capture(
     await db.commit()
 
     broadcaster.publish(slug, serialize_event(event))
+    await prune_events(db, endpoint.id)
 
     return {"received": True, "event_id": event.id}
